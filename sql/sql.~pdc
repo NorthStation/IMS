@@ -1,0 +1,182 @@
+--------------------------------------------序列--------------------------------------------
+--创建序列
+create sequence unique_seq increment by 1 start with 30000;
+
+
+--------------------------------------------表--------------------------------------------
+--创建供应商表
+create table tb_supplie(
+id number(5) primary key,
+name varchar2(50) not null,
+linkman varchar2(20) not null,
+phone varchar2(12) not null,
+email varchar2(40) not null,
+bank varchar2(20) not null,
+account varchar2(40) not null,
+address varchar2(50) not null
+);
+
+--创建商品表
+create table tb_product(
+id number(5) primary key,
+name varchar2(20) not null,
+genre varchar2(20) not null,
+price number(5,2) not null,
+specific varchar2(10) not null,
+unit varchar2(10) not null,
+supplieId number(5) references tb_supplie(id) on delete cascade,
+remarks varchar2(50),
+madeIn varchar2(20) not null
+);
+
+--创建入库单
+create table tb_inStorageOrder(
+id varchar2(20) primary key,
+varNumber number(5) not null,
+proCount number(8) not null,
+sum number(10,2) not null,
+payMent varchar2(10) not null,
+time Date not null,
+handle varchar2(10) not null,
+conclusion varchar2(20)
+);
+
+--创建入库详单
+create table tb_inStorageDetailOrder(
+orderId varchar2(20) references tb_inStorageOrder(id),
+proId number(5) not null,
+amount number(8) not null,
+price number(5,2) not null,
+primary key(orderId,proId)
+);
+
+--创建入库退货单
+create table tb_inStorageReturnOrder(
+id varchar2(20) primary key,
+time Date not null,
+handle varchar2(10) not null,
+payMent varchar2(10) not null,
+sum number(10,2) not null
+);
+
+--创建入库退货详单
+create table tb_inStorageReturnDetailOrder(
+orderReturnId varchar2(20) references tb_inStorageReturnOrder(id),
+proId number(5) not null,
+amount number(8) not null,
+price number(5,2) not null,
+primary key(orderReturnId,proId)
+);
+
+--创建销售单
+create table tb_salesOrder(
+id varchar2(22) primary key,
+handle varchar2(10) not null,
+time Date not null,
+customerName varchar2(50) not null,
+payMent varchar2(10) not null,
+sum number(10,2) not null,
+remarks varchar2(50) 
+);
+
+--创建销售详单
+create table tb_salesDetailOrder(
+salesId varchar2(22) references tb_salesOrder(id),
+proId number(5) not null,
+price number(5,2) not null,
+amount number(8) not null,
+primary key(salesId,proId)
+);	
+
+--创建销售退货单
+create table tb_salesReturnOrder(
+id varchar2(22) primary key,
+time Date not null,
+handle varchar2(10) not null,
+customerName varchar2(50) not null,
+payMent varchar2(10) not null,
+sum number(10,20) not null
+);
+
+--创建销售退货详单
+create table tb_salesReturnDetailOrder(
+salesReturnId varchar2(22) references tb_salesReturnOrder(id),
+proId number(5) not null,
+price number(5,2) not null,
+amount number(8) not null,
+primary key(salesReturnId,proId)
+);
+
+--创建库存表
+create table tb_stock(
+id number(5) primary key,
+proId number(5) not null,
+amount number(8) not null,
+name varchar2(20) not null,
+genre varchar2(20) not null,
+price number(5,2) not null,
+specific varchar2(10) not null,
+unit varchar2(10) not null,
+supplieName varchar2(50) not null,
+remarks varchar2(50),
+madeIn varchar2(20) not null
+);
+
+--创建用户表
+create table tb_user(
+name varchar2(10) primary key,
+password varchar2(20) not null,
+power varchar2(20) default '普通用户' not null
+);
+
+
+--------------------------------------------视图--------------------------------------------
+
+--创建入库详单信息视图
+create or replace view  v_inStorageDetailInfo as 
+select  i.orderId,i.proId,s.name proName,i.amount,i.price,s.unit,s.specific
+from tb_inStorageDetailOrder i join tb_stock s on i.proId=s.proId;
+
+--创建入库退货详单信息视图
+create or replace view v_inStorageReturnDetailInfo as
+select i.orderReturnId,i.proId,s.name proName,i.price returnPrice,i.amount,s.unit,s.specific,s.price inPrice,s.supplieName
+from tb_inStorageReturnDetailOrder i join tb_stock s on i.proId=s.proId;
+
+--创建销售出库详单信息视图
+create or replace view v_salesDetailInfo as 
+select o.salesId,o.proId,s.name proName,o.price,o.amount,s.genre,s.specific,s.madeIn,s.remarks
+from tb_salesDetailOrder o join tb_stock s on o.proId=s.proId;
+
+--创建销售退货详单信息视图
+create or replace view v_salesReturnDetailInfo as 
+select o.salesReturnId,o.proId,s.name proName,o.price,o.amount,s.genre,s.specific,s.madeIn,s.remarks
+from tb_salesReturnDetailOrder o join tb_stock s on o.proId=s.proId;
+
+--创建商品信息视图
+create or replace view v_product as
+select p.id,p.name,p.genre,p.price,p.specific,p.unit,s.id supplieId,s.name supplieName,p.remarks,p.madeIn
+from tb_product p join tb_supplie s on p.supplieid=s.id;
+
+
+--------------------------------------------索引--------------------------------------------
+
+--给商品表的供应商编号建立索引
+create index supplie_index on tb_product(supplieId);
+
+--给供应商表的供应商名称建立索引
+create index supplieName_index on tb_supplie(name);
+
+--给商品表中的商品名称建立索引
+create index proName_index on tb_product(name);
+
+--给商品表中的商品类型建立索引
+create index proGenre_index on tb_product(genre);
+
+--给库存表中的商品名称建立索引
+create index name_index on tb_stock(name);
+
+--给库存表中的商品类型建立索引
+create index genre_index on tb_stock(genre);
+
+-------------------------------------------------初始化用户---------------------------------------------
+insert into tb_user values('admin','admin','系统管理员');
